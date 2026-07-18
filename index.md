@@ -7,4 +7,3 @@ Embedded Software Engineer | Security Researcher
 - [About](about.md)
 - [Write-ups](writeups.md)
 - [Projects](projects.md)
-- [Contact](contact.md)

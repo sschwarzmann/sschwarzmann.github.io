@@ -10,6 +10,7 @@ My interests include:
 - Embedded Systems Security
 
 CV: Coming soon
+
 [comment]: # TODO: [CV (PDF)](assets/CV.pdf)
 
 
