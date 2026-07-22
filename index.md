@@ -5,6 +5,6 @@ Embedded Software Engineer | Security Researcher
 ## Navigation
 
 - [About Me](about-me.md)
+- [Experience](experience.md)
 - [Write-ups](writeups.md)
-- [Projects](projects.md)
 - [Contact](contact.md)
