@@ -1,5 +1,5 @@
 # Write-ups
 
-Coming soon...
+* [TryHackMe: Billing](_posts/2026-07-20-tryhackme-billing.md)
 
 [comment]: # TODO write ups
