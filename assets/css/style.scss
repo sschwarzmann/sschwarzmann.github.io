@@ -1,0 +1,16 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+/* Make the main content area substantially wider */
+.wrapper {
+  width: 90%;
+  max-width: 1400px;
+}
+
+section {
+  width: calc(100% - 320px);
+  max-width: none;
+}
+
