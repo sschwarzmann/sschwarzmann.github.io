@@ -1,3 +1,4 @@
 theme: jekyll-theme-minimal
 title: Stephan Schwarzmann's homepage
 description: Infosec write-ups, CV etc.
+permalink: /writeups/:title/
