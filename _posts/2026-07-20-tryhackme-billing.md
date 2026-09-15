@@ -1,6 +1,7 @@
 ---
 title: 'TryHackMe: Billing'
 date: 2026-07-20
+author: Stephan Schwarzmann
 ---
 
 ## Room Overview
