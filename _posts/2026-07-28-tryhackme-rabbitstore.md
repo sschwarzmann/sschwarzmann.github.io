@@ -1,4 +1,4 @@
----
+sudo rabbitmqctl --erlang-cookie 'BM5WlJl3S6hKo0XR' --node rabbit@forge list_users---
 title: 'TryHackMe: Rabbit Store'
 date: 2026-07-28
 author: Stephan Schwarzmann
@@ -67,7 +67,7 @@ register             (Status: 405) [Size: 36]
 uploads              (Status: 401) [Size: 32]
 ```
 
-Those look interesting, but we can not access them.
+Those look interesting, but we cannot access them.
 
 The `sign up` leads to `http://storage.cloudsite.thm/register.html` where I can register.
 After registration, I can sign in with the credentials `test@foobar.com` and `mypasswd`.
@@ -83,12 +83,12 @@ Looking at the browser's data shows that the web app uses a cookie named `jwt` w
 
 `{"alg":"HS256","typ":"JWT"}{"email":"test@foobar.com","subscription":"inactive","iat":1789742385,"exp":1789745985}`
 
-and a binary part (i.e. no plaintext), which is the `jwt` signature to prevent forging the payload of the cookie.
+The third component is the cryptographic signature, which prevents modifying the payload without knowing the signing key.
 
 
 ## Initial access
 
-Changing the `jwt` cookie to `"subscription":"active"` fails, because I can not generate the suitable signature for the new payload. Sometimes the signature does not get verified -- but here it seems the webserver checks it correctly.
+Changing the `jwt` cookie to `"subscription":"active"` fails, because I cannot generate the suitable signature for the new payload. Sometimes the signature does not get verified -- but here it seems the webserver checks it correctly.
 
 The subscription status eventually could be changed crafting a request for the `sign up` which does not only use the two original parameters, but additionally contains a value for a parameter `subscription` (as seen in the `jwt` cookie's payload):
 
@@ -107,7 +107,7 @@ Using the new account, the website redirects to http://storage.cloudsite.thm/das
 ![Browser Account active](/assets/images/writeups/rabbitstore/03_browser-account-active.png)
 
 
-I ran several tests for a `SSRF` vulnerability with the URL upload function -- uploading datd from different URLs, downloading the resulting file and reading its content:
+I ran several tests for a `SSRF` vulnerability with the URL upload function -- uploading data from different URLs, downloading the resulting file and reading its content:
 
 ![Browser URL upload done](/assets/images/writeups/rabbitstore/04_upload-from-url.png)
 
@@ -115,7 +115,7 @@ I ran several tests for a `SSRF` vulnerability with the URL upload function -- u
 - `file:///etc/passwd` fails with "Error storing file from URL"
 - I started a local webserver and uploaded a textfile via "http://192.168.139.89:8000/testfile.txt" which also worked
 
-The URL upload function may allow access to different ports and webserber directories that are only accessible from external, but only internally (i.e. from localhost).
+The URL upload function may allow access to different ports and webserver directories that are only accessible from external, but only internally (i.e. from localhost).
 Apache's responses contain:
 
 ```
@@ -123,15 +123,16 @@ Apache
 X-Powered-By: Express
 ```
 
-So the Apache server is acting as a reverse proxy that forwards incoming web traffic to an underlying `Node.js` application running the `Express.js` framework.
-That makes the following ports interesting, which are ofren used by `Node.js`, `Express`, and `RabbitMQ`:
+The responses contain both Apache and X-Powered-By: Express, suggesting that Apache is acting as a reverse proxy in front of a Node.js/Express application.
+That makes the following ports interesting, which are often used by `Node.js`, `Express`, and `RabbitMQ`:
 
 - http://127.0.0.1:3000
 - http://127.0.0.1:5000
 - http://127.0.0.1:8080
 - http://127.0.0.1:15672
 
-After some attempts, the URL upload of "http://127.0.0.1:3000/api/docs" reveals the API documentation:
+Since I had already found several interesting, but unaccessible `/api` endpoints on port 80, I also tested them on different ports.
+And after some attempts, the URL upload of "http://127.0.0.1:3000/api/docs" reveals the API documentation:
 
 ```
 Endpoints Perfectly Completed
@@ -152,8 +153,7 @@ Note: All requests to this endpoint are sent in JSON format.
 ```
 
 `/api/fetch_messeges_from_chatbot` is new and looks interesting due to the comment.
-
-Uploading `/api/fetch_messeges_from_chatbot` results in an error message:
+Fetching `/api/fetch_messeges_from_chatbot` through the URL upload function resulted in a `Cannot GET` response:
 
 ```
 <!DOCTYPE html>
@@ -168,7 +168,7 @@ Uploading `/api/fetch_messeges_from_chatbot` results in an error message:
 </html>
 ```
 
-I used Burp to craft a POST request with an empty JSON payload.
+I therefore used Burp to send a direct POST request with an empty JSON payload.
 
 ![Burp Post request empty](/assets/images/writeups/rabbitstore/05_Burp-post-request-wo-username.png)
 
@@ -188,22 +188,23 @@ My next step was to look for an `SSTI` vulnerability.
 > Pentesters and security researchers use these payloads during the discovery phase to check for Server-Side Template Injection (SSTI) 
 > across multiple potential backend engines simultaneously.
 
-The response for the playload
+An error response for the payload
 
 {% raw %}
 `{"username":"${{<%[%'\"}}%\\."}`
 {% endraw %}
 
-tells us that `jinja` is used as backend. I confirm this by using 
+tells us that `jinja` is used as backend. I test the evaluation and processing of user input by using 
 
 {% raw %}
 `{"username":"${{ 7*7 }}`
 {% endraw %}
 
-and the backend reponds with `49` as username:
+The expression is evaluated and the result `49` is returned:
 
 `Sorry, 49, our chatbot server is currently under development.`
 
+This confirms that user-controlled input is processed as a Jinja2 template, indicating a Server-Side Template Injection (SSTI) vulnerability.
 I looked up a reverse shell command (the IP address is my `tun0` VPN IP address)
 
 {% raw %}
@@ -220,7 +221,7 @@ The first flag is in the user's home folder.
 
 ## Privilege Escalation
 
-After stabilizinh the shell with the common commands
+After stabilizing the shell with the common commands
 
 ```console
 python3 -c 'import pty;pty.spawn("/bin/bash");'
@@ -232,7 +233,7 @@ stty raw -echo; fg
 I enumerated the file system. One of the finds is an `erlang` cookie:
 ```console
 cat /var/lib/rabbitmq/.erlang.cookie
-asF13eLLez4rTd3j
+BM5WlJl3S6hKo0XR
 ```
 
 I looked up the `Erlang` node names via
@@ -319,7 +320,7 @@ We retrieve the flags from `/home/azrael/user.txt` and `/root/root.txt`.
 
 ## Lessons Learned and acknowledgements
 
-I am leaving most of the (futile) efforts away, but as always, these findings were not always straightforward.
-I particular, enumeration and vulnerability analysis for the other ports and services took a long time (e.g., there were some CVEs reg. `jquery`: CVE-2020-11023, CVE-2019-11358).
+I am leaving most of the (unsuccessful) efforts away, but as always, these findings were not always straightforward.
+In particular, enumeration and vulnerability analysis for the other ports and services took a long time (e.g., there were some CVEs reg. `jquery`: CVE-2020-11023, CVE-2019-11358).
 
 I've used a hint from [another write-up](https://jaxafed.github.io/posts/tryhackme-rabbit_store/) to be able to exploit the `Erlang` cookie.
