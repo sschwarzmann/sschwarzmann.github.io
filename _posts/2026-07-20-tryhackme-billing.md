@@ -17,13 +17,11 @@ author: Stephan Schwarzmann
 > Gain a shell, find the way and escalate your privileges!*
 > **Note**: Bruteforcing is out of scope for this room.*
 
-## Reconnaissance
-
-- IP
-- open ports
-- initial service discovery
+## Target
 
 For readability, I use `billing.thm` throughout this write-up. The hostname was mapped to the current TryHackMe target IP in `/etc/hosts`.
+
+## Reconnaissance
 
 A first check with `nmap -sS -Pn -p- billing.thm` reveals:
 
@@ -168,4 +166,3 @@ After finishing the room, THM provided feedback for the approach, some of which 
 
 I was told to enumerate earlier with `sudo -l`, but that was about the first action I performed after gaining initial access.
 It took me probably too long to understand how to exploit `fail2ban` via `sudo` and set it up correctly with the second approach described on [GTFOBins](https://gtfobins.org). 
-
