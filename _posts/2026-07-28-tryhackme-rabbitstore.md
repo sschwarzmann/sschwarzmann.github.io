@@ -1,4 +1,4 @@
-sudo rabbitmqctl --erlang-cookie 'BM5WlJl3S6hKo0XR' --node rabbit@forge list_users---
+---
 title: 'TryHackMe: Rabbit Store'
 date: 2026-07-28
 author: Stephan Schwarzmann
